@@ -19,7 +19,7 @@ public class KMIS {
 		
 		final int k = 3;
 		int ite = 0;
-		final int MAX_ITER = 2; // 30;
+		final int MAX_ITER = 30; // 30;
 		final int g = 5; //formigas ativas
 		
 		// cria o grafo, cujos vértices são todos os subsets existentes
@@ -28,11 +28,6 @@ public class KMIS {
 		// Possui a quantidade de feromônios na aresta entre o vértice i e j.
 		edges = new int[sizeL][sizeL];
 		
-		// ArrayList com as informações das formigas ativas
-		// a linha representa uma formiga (total de g formigas)
-		// a coluna representa os subsets que a formiga caminhou (passou por até k vértices)
-		ArrayList<ArrayList<Integer>> activeAnts = new ArrayList<ArrayList<Integer>>();
-		
 		Solution bestSolution = new Solution(null, 0), solution;
 		int cardInBestSolution = -1, cardIn;
 		
@@ -40,12 +35,17 @@ public class KMIS {
 			
 			System.out.println("\r\n ***Iteração: " + ite + "***");
 			
+			// ArrayList com as informações das formigas ativas
+			// a linha representa uma formiga (total de g formigas)
+			// a coluna representa os subsets que a formiga caminhou (passou por até k vértices)
+			ArrayList<ArrayList<Integer>> activeAnts = new ArrayList<ArrayList<Integer>>();
+			
 			// Etapa de construção de soluções
 			activeAnts = updateActiveAnts(activeAnts, g, k);	
-			printActiveAnts(activeAnts);
 			
 			// Atualização de L*
-			updateAntsLStar(activeAnts); // anda com cada formiga pelo grafo, por enquanto não faz nada
+			activeAnts = walk(activeAnts, k); // anda com cada formiga pelo grafo
+			printActiveAnts(activeAnts);
 			
 			// Aplicação da busca local VND nas g formigas
 			for(ArrayList<Integer> activeAnt : activeAnts) {
@@ -66,7 +66,6 @@ public class KMIS {
 			
 			
 			// Atualização de Feromônios
-			
 			
 			ite++;
 		}
@@ -222,24 +221,55 @@ public class KMIS {
 	 * @param activeAnts
 	 * @return
 	 */
-	public static ArrayList<ArrayList<Integer>> updateAntsLStar(ArrayList<ArrayList<Integer>> activeAnts){
+	public static ArrayList<ArrayList<Integer>> walk(ArrayList<ArrayList<Integer>> activeAnts, int kSub){
 		
+        double arrProbability[] = new double[sizeL];
 		
-		//por enquanto essa função não faz nada
-		
-		return null;
+		// a cada iteração trabalhamos com uma formiga
+		for(ArrayList<Integer> ant : activeAnts) {
+			
+			while(ant.size() < kSub) {
+				
+				// criação do vetor com as probabilidades da formiga visitar cada um dos vértices
+				double sum = 0;
+				int i = ant.get(ant.size() - 1);
+				for(int k = 0; k < sizeL; k++) {
+					sum += auxProbability(i, k, ant);
+					arrProbability[k] = sum;
+					//System.out.println("Probabilidade da formiga "+ i +" ir para o subset "+k+": "+ arrProbability[k]);
+				}
+				
+				// escolha do próximo subset que a formiga percorrerá obedecendo a probabilidade
+				Random r = new Random();
+				double randomNumber = r.nextDouble() * sum;
+		        //System.out.println("Numero aleatorio: " + randomNumber );
+		        int subset = 0;
+		        while((arrProbability[subset] <= randomNumber) && subset < sizeL) {
+		        	subset++;
+		        }
+		        //System.out.println("Subset escolhido: " +  subset);
+		        
+		        // adição do subset ao caminho percorrido pela formiga 
+		        ant.add(subset);
+		        
+		        // adição de feromônio ao caminho que a formiga percorreu
+		        edges[i][subset] += (edges[i][subset] <= 0) ? 2 : 1;
+				
+			}
+			
+		}
+		return activeAnts;
 	}
 	
 	
 	/**
-	 * Função do cálculo da propabilidade da formiga t, sair do vértice i e ir para o vértice j
-	 * @param t
+	 * Função do cálculo da propabilidade da formiga sair do vértice i e ir para o vértice j
 	 * @param i
 	 * @param j
 	 * @param pathAnt
 	 * @return
 	 */
-	public static double probability(int i, int j, int[] pathAnt) {
+	public static double probability(int i, int j, ArrayList<Integer> pathAnt) {
 		double sum = 0;
 		
 		for(int k = 0; k < sizeL; k++) {
@@ -257,14 +287,14 @@ public class KMIS {
 	 * @param j
 	 * @return
 	 */
-	public static double auxProbability(int i, int j, int[] pathAnt) {
+	public static double auxProbability(int i, int j, ArrayList<Integer> pathAnt) {
+		
+		if(i==j) return 0;
 		
 		// Faz a interseção de todos os subsets (vértices) em que a formiga já passou
-		BitSet intersect = graph[pathAnt[0]];
-		int l = 1;
-		while(pathAnt[l] != -1) {
-			intersect.and(graph[pathAnt[l]]);
-			l++;
+		BitSet intersect = (BitSet) graph[pathAnt.get(0)].clone();
+		for(int l = 1; l < pathAnt.size(); l++) {
+			intersect.and(graph[pathAnt.get(l)]);
 		}
 		// armazena o valor de elementos da interseção
 		int cardinalityIntersect = intersect.cardinality(); 
@@ -279,7 +309,7 @@ public class KMIS {
 		double ntij = 1 / dtij;
 		
 		// cálculo do Tij, que representa a quantidade de feromônio do vértice i até o j
-		double Tij = edges[i][j];
+		double Tij = (edges[i][j]==0) ?  1 : edges[i][j];
 		
 		return ntij * Tij;
 	}
@@ -341,39 +371,46 @@ public class KMIS {
 	
 	
 	/**
-	 * Retorna um array LStar com números aleatórios não repetidos de [0,sizeL-1}
+	 * Antieriormente: Retorna um array LStar com números aleatórios não repetidos de [0,sizeL-1}
 	 * @param LStar
+	 * @param k
+	 * @return
+	 */
+	/**
+	 * Gera g formigas e coloca eles em um vértice aleatório do grafo. 
+	 * Os k-1 caminhos restantes da formiga recebem valores aleatorios, mas temos que mudar essa função
+	 * (Os k-1 caminhos restantes da formiga recebem valor -1)
+	 * @param activeAnts
+	 * @param g
 	 * @param k
 	 * @return
 	 */
 	public static ArrayList<ArrayList<Integer>> updateActiveAnts(ArrayList<ArrayList<Integer>> activeAnts, int g, int k) {
 		
+		/*
         ArrayList<Integer> list = listRandomNumbers(g * k, sizeL);
-        /*
-        ArrayList<Integer> list = listRandomNumbers(g, sizeL);
         */
+        ArrayList<Integer> list = listRandomNumbers(g, sizeL);
         
         int cont_list = 0;
         
         for(int it_g = 0; it_g < g; it_g++) {
         	
-        	//int[] antPath = new int[k]; //apagar
         	ArrayList<Integer> ant = new ArrayList<Integer>();
         	
+        	/*
         	for(int it_k = 0; it_k < k; it_k++) {
-        		//antPath[it_k] = list.get(cont_list);
         		ant.add(list.get(cont_list));
         		cont_list++;
         	}
-        	/*
-        	antPath[0] = list.get(cont_list);
+        	*/
+        	ant.add(list.get(cont_list));
         	cont_list++;
         	for(int it_k = 1; it_k < k; it_k++) {
-        		antPath[0] = -1
+        		//ant.add(-1);
         	}
-        	*/
         	
-        	//activeAnts.add(antPath); //apagar
+        	
         	activeAnts.add(ant);
         }
         
