@@ -3,9 +3,12 @@ import java.util.Random;
 import java.util.Set;
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Date;
 import java.util.HashSet;
 
 public class KMIS {
@@ -13,13 +16,13 @@ public class KMIS {
 	public static int sizeL;
 	public static BitSet[] graph; // grafo, cujos vértices são todos os subsets existentes
 	public static int[][] edges; // Possui a quantidade de feromônios na aresta entre o vértice i e j.
-	
+	public static PrintWriter printWriterTests;
 	
 	public static void main(String[] args) throws IOException {
 		
 		final int k = 3;
 		int ite = 0;
-		final int MAX_ITER = 30; // 30;
+		final int MAX_ITER = 10; // 30;
 		final int g = 5; //formigas ativas
 		
 		// cria o grafo, cujos vértices são todos os subsets existentes
@@ -33,7 +36,7 @@ public class KMIS {
 		
 		while(ite <= MAX_ITER) {
 			
-			System.out.println("\r\n ***Iteração: " + ite + "***");
+			printWriterTests.println("\r\n ***Iteração: " + ite + "***");
 			
 			// ArrayList com as informações das formigas ativas
 			// a linha representa uma formiga (total de g formigas)
@@ -61,14 +64,14 @@ public class KMIS {
 				}
 			}
 			
-			System.out.print("Melhor solução da iteração: ");
+			printWriterTests.print("Melhor solução da iteração: ");
 			printSolution(bestSolution);
 			
 			
-			// Atualização de Feromônios
-			
 			ite++;
 		}
+		
+		printWriterTests.close();
 	}
 	
 	/**
@@ -78,7 +81,7 @@ public class KMIS {
 	public static int f(int k) {
 		
 		if(k < 2) {
-			System.out.println("Erro: o k deve ser maior que 2");
+			printWriterTests.println("Erro: o k deve ser maior que 2");
 			return 0;
 		} else if(k == 2) {
 			return 1;
@@ -153,11 +156,11 @@ public class KMIS {
 	 */
 	public static Solution heuristicaVND(ArrayList<Integer> solution, int k) {
 		
-		System.out.print("Aplicação de VND para a formiga: ");
+		printWriterTests.print("Aplicação de VND para a formiga: ");
 		for(Integer s : solution) {
-			System.out.print(s + " ");
+			printWriterTests.print(s + " ");
 		}
-		System.out.println("");
+		printWriterTests.println("");
 		
 		// vizinhança que conterá as variações de formigas
 		ArrayList<ArrayList<Integer>> neighborhood = new ArrayList<ArrayList<Integer>>();
@@ -198,7 +201,7 @@ public class KMIS {
 			}
 		}
 		
-		System.out.print("Melhor solução: ");
+		printWriterTests.print("Melhor solução: ");
 		printSolution(bestSolution);
 		
         return bestSolution;
@@ -209,11 +212,11 @@ public class KMIS {
 	 * @param sol
 	 */
 	public static void printSolution(Solution sol) {
-		System.out.print("Solução com subsets: ");
+		printWriterTests.print("Solução com subsets: ");
 		for(Integer s : sol.solution) {
-			System.out.print(s + " ");
+			printWriterTests.print(s + " ");
 		}
-		System.out.println(". Cardinalidade da interseção: "+ sol.cardinalityIntersection);
+		printWriterTests.println(". Cardinalidade da interseção: "+ sol.cardinalityIntersection);
 	}
 	
 	/**
@@ -236,18 +239,18 @@ public class KMIS {
 				for(int k = 0; k < sizeL; k++) {
 					sum += auxProbability(i, k, ant);
 					arrProbability[k] = sum;
-					//System.out.println("Probabilidade da formiga "+ i +" ir para o subset "+k+": "+ arrProbability[k]);
+					printWriterTests.println("Probabilidade da formiga "+ i +" ir para o subset "+k+": "+ arrProbability[k]);
 				}
 				
 				// escolha do próximo subset que a formiga percorrerá obedecendo a probabilidade
 				Random r = new Random();
 				double randomNumber = r.nextDouble() * sum;
-		        //System.out.println("Numero aleatorio: " + randomNumber );
+		        printWriterTests.println("Numero aleatorio: " + randomNumber );
 		        int subset = 0;
 		        while((arrProbability[subset] <= randomNumber) && subset < sizeL) {
 		        	subset++;
 		        }
-		        //System.out.println("Subset escolhido: " +  subset);
+		        printWriterTests.println("Subset escolhido: " +  subset);
 		        
 		        // adição do subset ao caminho percorrido pela formiga 
 		        ant.add(subset);
@@ -324,13 +327,13 @@ public class KMIS {
 		
 		for(ArrayList<Integer> ant : activeAnts) {
 			
-			System.out.print("Formiga: ");
+			printWriterTests.print("Formiga: ");
 			
 			for(Integer subset : ant) {
-				System.out.print(subset +", ");
+				printWriterTests.print(subset +", ");
 			}
 			
-			System.out.println("");
+			printWriterTests.println("");
 			
 		}
 		
@@ -345,7 +348,7 @@ public class KMIS {
 	public static ArrayList<Integer> listRandomNumbers(int size, int range){
 		
 		if(size > range) {
-			System.out.println("Não foi possível criar a lista de números aleatórios");
+			printWriterTests.println("Não foi possível criar a lista de números aleatórios");
 			return null;
 		}
 		
@@ -429,9 +432,9 @@ public class KMIS {
 		
 		Random generator = new Random();
 		
-		int type = generator.nextInt(3) + 1;
-		int l = generator.nextInt(10);
-		int group = generator.nextInt(3) + 1;
+		int type = 3; //generator.nextInt(3) + 1;
+		int l = 1; //generator.nextInt(10);
+		int group = 1; //generator.nextInt(3) + 1;
 		
 		int allN[] = {40, 60, 80, 100, 140, 180, 200, 240, 280, 300};
 		int nL, nR;
@@ -474,6 +477,9 @@ public class KMIS {
 		}
 		
 		String path = "GilbertInstances/type"+type+"/group_"+group+"_"+nL+"_"+nR+".txt";
+		
+		Date now = new Date();
+		printWriterTests = new PrintWriter("testes/" + "GilbertInstances/type"+type+"/group_"+group+"_"+nL+"_"+nR+ "_" + now.getTime() + ".txt" );
 		
 		// cada elemento do vetor é uma bitString que representa um subset Si
 		BitSet graph[] = new BitSet[nL];
@@ -533,10 +539,10 @@ public class KMIS {
 	public static void printGraph(BitSet[] graph, String path) {
 		
 		for(int i=0;i<graph.length;i++) {
-			System.out.println("Subset " + (i+1) + ": " + graph[i].toString());
+			printWriterTests.println("Subset " + (i+1) + ": " + graph[i].toString());
 		}
 		
-		System.out.println("File: " + path);
+		printWriterTests.println("File: " + path);
 		
 	}
 	
